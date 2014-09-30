@@ -12,7 +12,6 @@ char* getmessage(char *);
 #include <fstream>
 #include <string.h>
 #include <windows.h>
-#include <winsock.h>
 #include "dirent.h"
 using namespace std;
 #pragma comment (lib,"WS2_32.lib") 
@@ -45,6 +44,7 @@ char localhost[11], remotehost[11];
 HANDLE test;
 DWORD dwtest;
 
+
 //reference for used structures
 
 /*
@@ -69,39 +69,50 @@ char    sin_zero[8];
 };
 */
 
-int listFiles(char a[]){
+void list(string s){
 
 	DIR *dir;
 	struct dirent *ent;
-	char clientDir[] = "C:\\Users\\Ankurp\\Documents\\Visual Studio 2013\\Projects\\Assignment1\\Assignment1";
-	char serverDir[] = "C:\\Users\\Ankurp\\Documents\\Visual Studio 2013\\Projects\\Assignment1Server\\Assignment1Server";
-	int i = -2;
-	if (a[0] == 'P'){
-		cout << "\nClient Directory";
-		cout << "\n======================";
-		dir = opendir(clientDir);
-	}
-	else if(a[0] == 'G'){
-		cout << "\nServer Directory\n";
-		cout << "\n======================";
-		dir = opendir(serverDir);
-	}
-	
+	char path[100] = { "\0" };
+
+	string s1;
+	s1 = s;
+	s1.copy(path, 100);
+
+	dir = opendir(path);
 	if ((dir) != NULL) {
 		/* print all the files and directories within directory */
+		cout << "\n==========================\n";
 		while ((ent = readdir(dir)) != NULL) {
-			cout<<"\n"<<i<<"."<<ent->d_name;
-			i++;
+			cout << "\n" << "." << ent->d_name;
 		}
+		cout << "\n==========================\n";
 		closedir(dir);
 	}
 	else {
-		/* could not open directory */
-		perror("");
-		return EXIT_FAILURE;
+		throw "\n Could Not Open The Directory\n";
 	}
 	
-	return 0;
+}
+
+void deleteFile(string s)
+{
+	char  filename[150] = { "\0" };
+	cout << "Enter the file name : ";
+	cin >> filename;
+		
+	string s1 = s;
+	string s2 = filename;
+	s1.append("\\");
+	s1.append(s2);
+	s1.copy(filename, 150);
+	cout << filename << endl;
+
+	if (remove(filename) != 0)
+		perror("Error deleting file.");
+	else
+		puts("File successfully deleted.");
+		
 }
 
 int main(void)
@@ -175,74 +186,129 @@ int main(void)
 		- <line feed> characters after the send buffer to indicate end-of file */
 
 		//append client message to szbuffer + send.
+			
+			// Client and server directory path.
+			string clientDir = "C:\\Users\\Ankurp\\Documents\\Visual Studio 2013\\Projects\\Assignment1Client\\Assignment1";
+			string serverDir = "C:\\Users\\Ankurp\\Documents\\Visual Studio 2013\\Projects\\Assignment1Server\\Assignment1Server";
+			
+			char action[10] = { "\0" };
+			cout << endl
+				<< "Press 'G' for Get operation" << endl
+				<< "Press 'P' for Put operation" << endl
+				<< "Press 'L' for List opeartion" << endl
+				<< "Press 'D' for Delete the file" << endl;
 
-		
-		char fileName[20] = { '\0' };
-		char direction[10] = { '\0' };
-		
-		cout << "Enter G to request a file from Server" << endl;
-		cout << "Enter P to send a file to Server" << endl;
-		cout << "Enter your choice: ";
-		cin >> direction;
-		listFiles(direction);
-		cout << "\nEnter the file name :" << fileName;
-		cin >> fileName;
+			cin >> action;
+			send(s, action, 10, 0);//send to server the action chosen by client.
 
-		send(s, direction, 10, 0);
-		if (direction[0] == 'G')
-		{
-			ibytessent = 0;
-			ibufferlen = strlen(fileName);
-			ibytessent = send(s, fileName, 20, 0);
-			if (ibytessent == SOCKET_ERROR)
-				throw "Send failed\n";
-			else
-				cout << "Message to server: " << szbuffer;
-
-			char filecontent[100];
-			ofstream myFile(fileName, ios::out | ios::binary);
-			ibytesrecv = 0;
-			while ((ibytesrecv = recv(s, filecontent, sizeof(filecontent), 0))>0)
+			switch (action[0])
 			{
-				myFile.write(filecontent, ibytesrecv);
-				memset(filecontent, 0, sizeof(filecontent));
-				cout << "Receiving...." << endl;
-			}
-			cout << "File received completely." << endl;
-			myFile.close();
-			system("PAUSE");
-		}
-		else if (direction[0] == 'P')
-		{
-			send(s, fileName, 20, 0);
-			ifstream myfile;
-			char filecontent[100];
-			int something = 0;
-			myfile.open(fileName, ios::in | ios::binary);
+			case 'G':
+				{       //List the Files and Directories in the server directory.
+						list(serverDir);
+						
+						char fileName[20] = { '\0' };
+						cout << "\nEnter the file name :" << fileName;
+						cin >> fileName;
 
-			if (myfile.is_open())
-			{
-				while (!myfile.eof())
-				{
-					myfile.read(filecontent, sizeof(filecontent));
-					cout << "Sending...." << endl;
-					if ((ibytessent = send(s, filecontent, sizeof(filecontent), 0)) == SOCKET_ERROR)
-					{
-						throw "error in send in server program while sendinf data \n";
-					}
-					else
-					{
-						memset(filecontent, 0, sizeof (filecontent));
-					}
+						ibytessent = 0;
+						ibufferlen = strlen(fileName);
+						ibytessent = send(s, fileName, 20, 0);
+						if (ibytessent == SOCKET_ERROR)
+							throw "Send failed\n";
+						else
+							cout << "Message to server: " << szbuffer;
+
+						char filecontent[100];
+						ofstream myFile(fileName, ios::out | ios::binary);
+						ibytesrecv = 0;
+						while ((ibytesrecv = recv(s, filecontent, sizeof(filecontent), 0))>0)
+						{
+							myFile.write(filecontent, ibytesrecv);
+							memset(filecontent, 0, sizeof(filecontent));
+							cout << "Receiving...." << endl;
+						}
+						cout << "File received completely." << endl;
+						myFile.close();
 				}
-				sprintf(szbuffer, "\r\n");
-				ibufferlen = strlen(szbuffer);
-				if ((ibytessent = send(s, szbuffer, ibufferlen, 0)) == SOCKET_ERROR)
-					throw "error in send in server program while sendinf data \n";
-			}
-			cout << "File transferred completely." << endl;
+				break;
+			case 'P':
+				{       //List the Files and Directories in the client directory.
+						list(clientDir);
+
+						char fileName[20] = { '\0' };
+						cout << "\nEnter the file name :" << fileName;
+						cin >> fileName;
+
+						send(s, fileName, 20, 0);
+						ifstream myfile;
+						char filecontent[100];
+						int something = 0;
+						myfile.open(fileName, ios::in | ios::binary);
+
+						if (myfile.is_open())
+						{
+							while (!myfile.eof())
+							{
+								myfile.read(filecontent, sizeof(filecontent));
+								cout << "Sending...." << endl;
+								if ((ibytessent = send(s, filecontent, sizeof(filecontent), 0)) == SOCKET_ERROR)
+								{
+									throw "error in send in server program while sending data \n";
+								}
+								else
+								{
+									memset(filecontent, 0, sizeof (filecontent));
+								}
+							}
+							sprintf(szbuffer, "\r\n");
+							ibufferlen = strlen(szbuffer);
+							if ((ibytessent = send(s, szbuffer, ibufferlen, 0)) == SOCKET_ERROR)
+								throw "error in send in server program while sending data \n";
+						}
+						cout << "File transferred completely." << endl;
+				}
+				break;
+
+			case 'L':
+				{
+						cout << endl
+							<< "Press 'S' for Server Directory : " << endl
+							<< "Press 'C' for Client Directory : " << endl;
+						char choice[10] = {"\0"};
+						cin >> choice;
+						if (choice[0] == 'S'){ list(serverDir);}
+						else if (choice[0] == 'C'){ list(clientDir);}
+				}
+				break;
+			case 'D':
+				{
+						cout << endl
+							<< "Press 'S' for Server Directory : " << endl
+							<< "Press 'C' for Client Directory : " << endl;
+						char choice[10] = { "\0" };
+						cin >> choice;
+						if (choice[0] == 'S'){ 
+							cout << "\nOpening Server Directory\n";
+							
+							list(serverDir);
+							
+							deleteFile(serverDir);
+						}
+						else if (choice[0] == 'C'){ 
+							cout << "\nOpening Client Directory\n";
+						
+							list(clientDir);
+						
+							deleteFile(clientDir);
+						}
+				}
+				break;
+
+			default:
+				break;
+			}//switch close
 			system("PAUSE");
-		}
 	}// try loop
 
 	//Display any needed error response.
