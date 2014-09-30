@@ -48,17 +48,18 @@ fd_set readfds;
 HANDLE test;
 DWORD dwtest;
 
-DWORD WINAPI communicate(LPVOID lpParam)
+DWORD WINAPI clientThread(LPVOID lpParam)
 {
 	SOCKET currentClient = (SOCKET)lpParam;
-	char direction[10];
+	char action[10];
 	char filename[20] = { '\0' };
 	//Fill in szbuffer from accepted request.
-	if ((ibytesrecv = recv(currentClient, direction, 10, 0)) == SOCKET_ERROR)
+	if ((ibytesrecv = recv(currentClient, action, 10, 0)) == SOCKET_ERROR)
 		throw "Receive error in server program\n";
-	cout << "This is message from client: " << direction << endl;
+	cout << "This is message from client: " << action << endl;
 
-	if (direction[0] == 'G')
+	//Check whether client requested for the Get operation.(Download from server)
+	if (action[0] == 'G')
 	{
 		recv(currentClient, filename, 20, 0);
 		ifstream myfile;
@@ -73,7 +74,7 @@ DWORD WINAPI communicate(LPVOID lpParam)
 				//cout << sizeof(filecontent) << endl;
 				if ((ibytessent = send(currentClient, filecontent, sizeof(filecontent), 0)) == SOCKET_ERROR)
 				{
-					throw "error in send in server program while sendinf data \n";
+					throw "error in send in server program while sending data \n";
 				}
 				else
 				{
@@ -83,14 +84,15 @@ DWORD WINAPI communicate(LPVOID lpParam)
 			sprintf(szbuffer, "\r\n");
 			ibufferlen = strlen(szbuffer);
 			if ((ibytessent = send(currentClient, szbuffer, ibufferlen, 0)) == SOCKET_ERROR)
-				throw "error in send in server program while sendinf data \n";
+				throw "error in send in server program while sending data \n";
 			else
 			{
 				cout << "File transferred Successfully";
 			}
 		}
 	}
-	if (direction[0] == 'P')
+	//Check whether client requested for a Put operation.(Upload to server)
+	if (action[0] == 'P')
 	{
 		recv(currentClient, filename, 20, 0);
 		char filecontent[100];
@@ -118,7 +120,7 @@ int main(void)
 	{
 		if (WSAStartup(0x0202, &wsadata) != 0)
 		{
-			cout << "Error in starting WSAStartup()\n";
+			cout << "Error in starting WSAStartup()\n"<<WSAGetLastError;
 		}
 		else
 		{
@@ -184,8 +186,10 @@ int main(void)
 			cout << endl << "accepted connection from " << inet_ntoa(ca.ca_in.sin_addr) << ":"
 				<< hex << htons(ca.ca_in.sin_port) << endl;
 
-			//create thread and pass the client
-			CreateThread(NULL, 0, communicate, (LPVOID)s1, 0, &thread);
+			//create thread and pass the client and return back to accept new client connection.
+			// For every new client request a new dedicated thread is created for the client.
+			
+			CreateThread(NULL, 0, clientThread, (LPVOID)s1, 0, &thread);
 
 		}//while loop
 
