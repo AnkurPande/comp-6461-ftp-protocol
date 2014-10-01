@@ -10,9 +10,9 @@ char* getmessage(char *);
 #include <stdio.h>
 #include <iostream>
 #include <fstream>
-#include <string.h>
+#include <string>
 #include <windows.h>
-#include "dirent.h"
+#include<vector>
 using namespace std;
 #pragma comment (lib,"WS2_32.lib") 
 
@@ -71,28 +71,27 @@ char    sin_zero[8];
 
 void list(string s){
 
-	DIR *dir;
-	struct dirent *ent;
-	char path[100] = { "\0" };
+	WIN32_FIND_DATA file_data;
+	HANDLE hFile;
+	vector<string> files;
 
-	string s1;
-	s1 = s;
-	s1.copy(path, 100);
+	string dir = s;
 
-	dir = opendir(path);
-	if ((dir) != NULL) {
-		/* print all the files and directories within directory */
-		cout << "\n==========================\n";
-		while ((ent = readdir(dir)) != NULL) {
-			cout << "\n" << "." << ent->d_name;
-		}
-		cout << "\n==========================\n";
-		closedir(dir);
+	hFile = FindFirstFile((dir + "/*").c_str(), &file_data);
+
+	cout << file_data.cFileName;
+	do{
+		string fileName = file_data.cFileName;
+		files.push_back(fileName);
+	} while ((FindNextFile(hFile, &file_data)) != 0);
+
+	cout << endl
+		 << "========================" << endl;
+	for (auto & i : files){
+		cout<< i <<endl;
 	}
-	else {
-		throw "\n Could Not Open The Directory\n";
-	}
-	
+	cout << endl
+		<< "========================" << endl;
 }
 
 void deleteFile(string s)
@@ -277,8 +276,12 @@ int main(void)
 							<< "Press 'C' for Client Directory : " << endl;
 						char choice[10] = {"\0"};
 						cin >> choice;
-						if (choice[0] == 'S'){ list(serverDir);}
-						else if (choice[0] == 'C'){ list(clientDir);}
+						if (choice[0] == 'S'){
+							cout << "\nOpening Server Directory\n";
+							list(serverDir);}
+						else if (choice[0] == 'C'){ 
+							cout << "\nOpening Client Directory\n";
+							list(clientDir);}
 				}
 				break;
 			case 'D':
