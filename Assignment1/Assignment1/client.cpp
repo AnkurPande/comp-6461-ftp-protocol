@@ -76,6 +76,7 @@ void list(string s){
 	vector<string> files;
 
 	string dir = s;
+	cout << dir;
 
 	hFile = FindFirstFile((dir + "/*").c_str(), &file_data);
 
@@ -108,10 +109,30 @@ void deleteFile(string s)
 	cout << filename << endl;
 
 	if (remove(filename) != 0)
-		perror("Error deleting file.");
+		perror("\nError deleting file.\n");
 	else
-		puts("File successfully deleted.");
+		puts("\nFile successfully deleted.\n");
 		
+}
+
+bool is_file_exist(char filename[]){
+
+	ifstream file;
+
+	file.open(filename, ios::in);
+
+	if (file.is_open()){
+
+		return true;
+
+		file.close();
+	}
+
+	else{
+
+		return false;
+	}
+
 }
 
 int main(void)
@@ -195,11 +216,14 @@ int main(void)
 				<< "Press 'G' for Get operation" << endl
 				<< "Press 'P' for Put operation" << endl
 				<< "Press 'L' for List opeartion" << endl
-				<< "Press 'D' for Delete the file" << endl;
-
+				<< "Press 'D' for Delete the file" << endl
+				<< "Press 'E' to exit" << endl;
+		
+		
 			cin >> action;
 			send(s, action, 10, 0);//send to server the action chosen by client.
 
+			
 			switch (action[0])
 			{
 			case 'G':
@@ -209,6 +233,15 @@ int main(void)
 						char fileName[20] = { '\0' };
 						cout << "\nEnter the file name :" << fileName;
 						cin >> fileName;
+
+						bool val = is_file_exist(fileName);
+
+						if (!val){
+
+							perror( "\nFile not found");
+
+							break;
+						}
 
 						ibytessent = 0;
 						ibufferlen = strlen(fileName);
@@ -253,7 +286,7 @@ int main(void)
 								cout << "Sending...." << endl;
 								if ((ibytessent = send(s, filecontent, sizeof(filecontent), 0)) == SOCKET_ERROR)
 								{
-									throw "error in send in server program while sending data \n";
+									perror("\n Error in send in server program while sending data ");
 								}
 								else
 								{
@@ -263,9 +296,16 @@ int main(void)
 							sprintf(szbuffer, "\r\n");
 							ibufferlen = strlen(szbuffer);
 							if ((ibytessent = send(s, szbuffer, ibufferlen, 0)) == SOCKET_ERROR)
-								throw "error in send in server program while sending data \n";
+								perror("\nError in send in server program while sending data ");
 						}
-						cout << "File transferred completely." << endl;
+						else
+						{
+							perror("\nFile not found");
+							break;
+						}
+						    cout << "\nFile transferred completely.\n" << endl;
+
+
 				}
 				break;
 
@@ -277,11 +317,12 @@ int main(void)
 						char choice[10] = {"\0"};
 						cin >> choice;
 						if (choice[0] == 'S'){
-							cout << "\nOpening Server Directory\n";
+							perror("\nOpening Server Directory");
 							list(serverDir);}
 						else if (choice[0] == 'C'){ 
 							cout << "\nOpening Client Directory\n";
 							list(clientDir);}
+						
 				}
 				break;
 			case 'D':
