@@ -1,0 +1,1 @@
+This project is about in developing a file transfer protocol using c++ and tcp/ip connection.
